@@ -1,12 +1,13 @@
 const mongoose = require('mongoose');
 
-const accountSchema = new mongoose.Schema({
-    name: {type: String, unique:true},
-    account: {type: Number, unique: true},
-    balance: {type: Number}
-
+const depositSchema = new mongoose.Schema({
+    depositor: {type: String,  required: true},
+    balance: {type: Number, Default: 0.00},
+    accountNumber:{type: mongoose.Schema.Types.Number, ref: "Users", required: true},
+    amount: {type: Number, required: true},
+    date:{}
 })
 
-const Accounts = mongoose.model("Accounts", accountSchema)
+const Deposit = mongoose.model("Deposit", depositSchema)
 
-export default Accounts
+module.exports = Deposit;
