@@ -3,6 +3,7 @@ const Deposits =  require('../model/savings.model')
 const Users =  require('../model/users.model')
 const bcrypt =  require('bcryptjs');
 const { listeners } = require('../model/savings.model');
+const { checkPhoneNumber } = require('../controllers/userController');
 
 const salt = bcrypt.genSaltSync(10);
 
@@ -11,25 +12,28 @@ const usersRouter = express.Router();
 // sign up and get assigned 0 account balance
 usersRouter.post('/register', async(req, res) => {
     req.body.password = bcrypt.hashSync(req.body.password, salt)
+
    const reqUser = req.body;
     try {
     reqUser.accountNumber = reqUser.phoneNumber.slice(1,)
-        const user = new Users(reqUser);
-        user.save();
-        // console.log( user)
+        const existingUser = await Users.find({accountNumber: reqUser.accountNumber})
+        console.log(existingUser);
+        if(existingUser) {
+            res.send(`A user already exists with this phone number ${reqUser.phoneNumber}, so it can't be used again.`)
+        } else{
+
+            const newUser = new Users(reqUser);
+           newUser.save();
+            // console.log( newUser)
+            const deposit = new Deposits({accountNumber:newUser.accountNumber})
+                deposit.save()
+            console.log(deposit)
+    
+        res.send(`${newUser.name}, your account number is ${newUser.accountNumber}, please login.`)
+        }
 
         // await Deposit.deleteMany({});
 
-        const deposit = new Deposits({accountNumber:user.accountNumber,
-            amount: 0,
-            depositor: req.body.name,
-            balance: 0,
-
-        })
-            deposit.save()
-        console.log(deposit)
-
-    res.send(`${user.name}, your account number is ${user.accountNumber}, please login.`)
 
     } catch (error) {
     console.log(error)
@@ -99,6 +103,38 @@ if(err){
  })
  
  res.send("Youre here")
+})
+
+usersRouter.patch('/resetpassword', checkPhoneNumber, async(req, res) => {
+        //  console.log(req.body)
+         
+    if(req.body.password !== req.body.confirmedPassword){
+        res.send("The password and Confirmed Password do not match")
+    } else{
+            const updatingPassword = bcrypt.hashSync(req.body.password, salt)
+        const newPassword = await Users.findOneAndUpdate({phoneNumber: req.body.phoneNumber},{password: updatingPassword},{new: true})
+        
+            console.log(newPassword)
+        // const verifiedPassword = bcrypt.compareSync(req.body.password, existingPassword.password)
+        
+            try {
+                
+                if(newPassword){
+                    res.send("Password updated successfully.")
+                } else {
+                    console.log(error.message)
+                }
+            } catch (error) {
+                
+            }
+    }
+
+
+
+})
+
+usersRouter.post('/users/login', (req, res) => {
+    
 })
 
 module.exports = usersRouter;
